@@ -1,0 +1,85 @@
+[* json.enabled string.enabled enum_descriptions]
+[ts file="data.ts"]
+module DataProtocol
+{
+    [elixir alias="Jason.OrderedObject.t" json.custom="Util.OrderedObject"]
+    define ordered_map<TKey, TValue> dict<TKey, TValue>;
+
+    enum OrderDirection
+    {
+        asc;
+        desc;
+    }
+
+    record Collection<T>
+    {
+        list<T> items;
+    }
+
+    record CollectionSlice<T>
+    {
+        ulong total;
+        list<T> items;
+    }
+
+    // NB: uncomment on need
+    // record TreeNode<TItem>
+    // {
+    //     ?TItem item;
+    //     list<TreeNode<TItem>> children = [];
+    // }
+
+    record Empty
+    {
+    }
+
+    record GenericResponse
+    {
+        bool result;
+    }
+
+    # HTTP errors
+    interface HttpError
+    {
+        // string error;
+        string message;
+        // ?json details;
+        ?string log_id;
+    }
+
+    [elixir http.exception_status_code=400]
+    exception BadRequestError<TError> : HttpError
+    {
+        string message = "Could not process the request due to client error";
+        ?TError error;
+        ?json details;
+    }
+
+    [elixir http.exception_status_code=401]
+    exception UnauthorizedError : HttpError {
+        string message = "Access denied. Please provide authentication data";
+    }
+
+    [elixir http.exception_status_code=403]
+    exception ForbiddenError : HttpError {
+        string message = "Access denied. You are not authorized to perform this action";
+    }
+
+    [elixir http.exception_status_code=404]
+    exception NotFoundError : HttpError {
+        string message = "Requested resource not found";
+    }
+
+    [elixir http.exception_status_code=409]
+    exception ConflictError<TError> : HttpError
+    {
+        string message = "Could not complete due to a conflict with the current state of the resource";
+        ?TError error;
+        ?json details;
+    }
+
+    [elixir http.exception_status_code=500]
+    exception InternalServerError : HttpError {
+        string message = "Could not process the request due to server error. Please contact developers";
+    }
+}

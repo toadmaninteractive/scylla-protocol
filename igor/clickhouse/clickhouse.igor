@@ -1,0 +1,87 @@
+[* json.enabled]
+module ClickhouseProtocol
+{
+    enum DataType
+    {
+        int8;
+        int16;
+        int32;
+        int64;
+        uint8;
+        uint16;
+        uint32;
+        uint64;
+        float32;
+        float64;
+        decimal;
+        decimal32;
+        decimal64;
+        decimal128;
+        string;
+        fixed_string;
+        uuid;
+        date;
+        date_time;
+        enum8;
+        enum16;
+        array;
+        aggregate_function;
+        tuple;
+        special;
+    }
+
+    record EnumPair
+    {
+        string key;
+        int value;
+    }
+
+    [erlang json.parser="clickhouse_types:type_spec_from_json" json.packer="clickhouse_types:type_spec_to_json"]
+    record TypeSpec
+    {
+        string raw_spec = "";
+        DataType data_type = special;
+        bool nullable = false;
+        ?list<EnumPair> enum_items;
+        ?int decimal_precision;
+        ?int decimal_scale;
+        ?int fixed_string_length;
+        ?TypeSpec array_item_type;
+        ?list<TypeSpec> tuple_item_types;
+    }
+
+    record ColumnDef
+    {
+        string name;
+        // TODO: TypeSpec type;
+        string type;
+    }
+
+    record QueryStatistics
+    {
+        double elapsed;
+        long rows_read;
+        long bytes_read;
+    }
+
+    record QueryResult
+    {
+        list<ColumnDef> meta;
+        list<json> data;
+        long rows;
+        ?long rows_before_limit_at_least;
+        QueryStatistics statistics;
+    }
+
+    [erlang http.client http.base_url="clickhouse_config:url()" http.default_client_headers="clickhouse_auth:default_headers()"]
+    [elixir http.client http.client_http_options="[recv_timeout: 300000]"]
+    webservice ClickhouseApi
+    {
+        // ExecQuery => GET /?user={string username}&password={string password}&database={string database}&query={string sql_query} -> {QueryResult response};
+        // GetData => GET /?user={string username}&password={string password}&database={string database}&query={string sql_query} -> string as text;
+        PostData => POST /?user={string username}&password={string password}&database={string database}&query={string sql_query}
+            string as text
+        ->
+            ~x-clickhouse-exception-code:{?int error} string as text;
+    }
+}

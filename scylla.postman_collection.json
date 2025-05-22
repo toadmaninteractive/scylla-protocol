@@ -1,0 +1,455 @@
+{
+    "info": {
+        "name": "scylla",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "ClickhouseApi",
+            "item": [
+                {
+                    "name": "PostData",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "",
+                                ""
+                            ],
+                            "query": [
+                                {
+                                    "key": "user",
+                                    "value": "{{username}}",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "{{password}}",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "database",
+                                    "value": "{{database}}",
+                                    "disabled": false
+                                },
+                                {
+                                    "key": "query",
+                                    "value": "{{sql_query}}",
+                                    "disabled": false
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "\"string\""
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "ScyllaIngestionService",
+            "item": [
+                {
+                    "name": "SendEvents",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/ingest",
+                                "{{project_id_or_code}}"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"events\":[{}]}"
+                        }
+                    },
+                    "description": "Push events to project database"
+                },
+                {
+                    "name": "GetSchema",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/ingest",
+                                "{{project_id_or_code}}",
+                                "schema"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Get project schema"
+                },
+                {
+                    "name": "UpdateSchema",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/ingest",
+                                "{{project_id_or_code}}",
+                                "schema"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"custom_types\":{\"\"string\"\":{\"kind\":\"record\",\"fields\":{\"\"string\"\":{\"kind\":\"bool\",\"optional\":false,\"help\":null,\"editor_key\":null,\"meta\":null,\"default\":null}},\"parent\":null,\"interfaces\":[\"string\"],\"generic_arguments\":null,\"group\":null}},\"document_type\":\"string\",\"version\":\"1.0\"}"
+                        }
+                    },
+                    "description": "Update project schema"
+                }
+            ]
+        },
+        {
+            "name": "ScyllaManagementService",
+            "item": [
+                {
+                    "name": "GetClickhouseInstances",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "clickhouse"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Get ClickHouse instances"
+                },
+                {
+                    "name": "CreateClickhouseInstance",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "clickhouse"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"code\":\"string\",\"name\":\"string\",\"uri\":\"string\",\"username\":\"string\",\"password\":\"string\"}"
+                        }
+                    },
+                    "description": "Create a ClickHouse instance"
+                },
+                {
+                    "name": "GetClickhouseInstance",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "clickhouse",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Get a ClickHouse instance"
+                },
+                {
+                    "name": "UpdateClickhouseInstance",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "clickhouse",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"code\":\"string\",\"name\":\"string\",\"uri\":\"string\",\"username\":\"string\",\"password\":\"string\"}"
+                        }
+                    },
+                    "description": "Update a ClickHouse instance"
+                },
+                {
+                    "name": "DeleteClickhouseInstance",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "clickhouse",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Delete a ClickHouse instance"
+                },
+                {
+                    "name": "GetProjects",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Get projects"
+                },
+                {
+                    "name": "CreateProject",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects"
+                            ],
+                            "query": [
+                                {
+                                    "key": "keep_db",
+                                    "value": true,
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"code\":\"string\",\"name\":\"string\",\"clickhouse_id\":0,\"clickhouse_db\":\"string\",\"description\":null}"
+                        }
+                    },
+                    "description": "Create a project"
+                },
+                {
+                    "name": "GetProject",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Get a project"
+                },
+                {
+                    "name": "UpdateProject",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "keep_db",
+                                    "value": true,
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\"code\":\"string\",\"name\":\"string\",\"clickhouse_id\":0,\"clickhouse_db\":\"string\",\"description\":\"string\"}"
+                        }
+                    },
+                    "description": "Update a project"
+                },
+                {
+                    "name": "DeleteProject",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects",
+                                "{{id_or_code}}"
+                            ],
+                            "query": [
+                                {
+                                    "key": "keep_db",
+                                    "value": true,
+                                    "disabled": true
+                                }
+                            ]
+                        },
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ]
+                    },
+                    "description": "Delete a project"
+                },
+                {
+                    "name": "RegenerateProjectKey",
+                    "request": {
+                        "url": {
+                            "host": "{{url}}",
+                            "path": [
+                                "/manage",
+                                "projects",
+                                "{{id_or_code}}",
+                                "{{key}}",
+                                "regenerate"
+                            ],
+                            "query": [
+                            ]
+                        },
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "content-type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "x-api-key",
+                                "value": "{{api_key}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}"
+                        }
+                    },
+                    "description": "Regenerate project key"
+                }
+            ],
+            "description": "Scylla Management Service"
+        }
+    ]
+}

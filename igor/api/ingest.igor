@@ -1,0 +1,82 @@
+using TypesProtocol;
+using DataProtocol;
+using IgorSchema;
+
+[* json.enabled string.enabled]
+[ts file="ingest.ts"]
+module IngestProtocol
+{
+    record Envelope
+    {
+        // list<AnalyticsEvent> events = [];
+        list<json> events;
+    }
+
+    record IngestorResponse
+    {
+        int ingested_count;
+        ?list<json> errors;
+    }
+
+    enum IngestError {
+        invalid_schema;
+        invalid_event;
+        invalid_event_tag;
+        unknown_event_tag;
+    }
+
+    enum SchemaError {
+        clashing_type;
+        unknown_type;
+        invalid_name;
+        invalid_type_definition;
+        update_failed;
+    }
+
+    enum SchemaConflictError {
+        dangerous_action;
+    }
+
+    record _OldSchemaResponse
+    {
+        dict<string, string> schema;
+        list<string> order;
+        string order_by;
+    }
+
+    [elixir http.server http.base_url="https://ingest.yourcompany.com/ingest"]
+    [elixir http.user="api_key && %{role: ~s'scylla_ext', key: api_key} || conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
+    [elixir http.if="ACL.can!(current_user, resource__, Scylla.get_project!(project_id_or_code))"]
+    [ts http.client file="ingest.service.ts" http.base_url="https://ingest.yourcompany.com/ingest"]
+    webservice ScyllaIngestionService
+    {
+        # Push events to project database
+        [elixir http.body_reader="Web.Router.read_may_be_compressed_body(conn)"]
+        SendEvents => POST /{ProjectId project_id_or_code}
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            Envelope
+        ->
+            201: IngestorResponse,
+            400: BadRequestError<IngestError>;
+
+        // NB: internal
+        # Get project schema
+        GetSchema => GET /{ProjectId project_id_or_code}/schema
+            ~x-api-key: {?string api_key}
+        ->
+            200: _OldSchemaResponse;
+
+        # Update project schema
+        [elixir http.json_decode_options="objects: :ordered_objects"] // NB: to preserve dict key order
+        UpdateSchema => PUT /{ProjectId project_id_or_code}/schema
+            ?force={bool force=false}
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            Schema
+        ->
+            204,
+            400: BadRequestError<SchemaError>,
+            409: ConflictError<SchemaConflictError>;
+    }
+}

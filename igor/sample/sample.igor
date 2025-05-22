@@ -1,0 +1,71 @@
+[schema enabled]
+[* json.enabled string.enabled]
+module SampleEvents
+{
+    enum EventName
+    {
+        aa_purchase;
+        achievement_progress;
+        add_looter;
+    }
+
+    // ClickHouse types
+    [schema meta=(clickhouse_type="DateTime")]
+    define DateTime string;
+
+    [schema root]
+    variant AnalyticsEvent
+    {
+        DateTime datetime; // "YYYY-MM-DD HH:MM:SS"
+        [schema meta=(clickhouse_order_by=true)]
+        uint64 timestamp; // UNIX timestamp, msec
+        string zone;
+        atom world; // LowCardinality<String>
+        string map;
+        [schema meta=(clickhouse_order_by=true)]
+        tag EventName event_name; // Treat this enum as LowCardinality<String>
+    }
+
+    interface IPlayerInfo
+    {
+        string player_name;
+        int64 player_sid;
+    }
+
+    interface IPlayerGuid
+    {
+        int64 player_guid;
+    }
+
+    record AnalyticsEvent.AAPurchase[aa_purchase] : IPlayerInfo, IPlayerGuid
+    {
+        int32 aa_id;
+        int32 aa_cost;
+        int32 pre_purchase_points;
+        int32 post_purchase_points;
+        int32 total_assigned_points_spent;
+        int32 total_points_spent;
+    }
+
+    record AnalyticsEvent.AchievementProgress[achievement_progress] : IPlayerInfo
+    {
+        atom event_type;  // LowCardinality<String>
+        string event_object;
+        int64 achievement_id;
+        int64 component_id;
+        int64 requirement_id;
+        int32 requirement_type;
+        int64 new_count;
+    }
+
+    record AnalyticsEvent.AddLooter[add_looter] : IPlayerInfo
+    {
+        atom player_type; // LowCardinality<String>
+        string loot_name;
+        float64 loot_distance;
+        bool is_new_loot_system;
+        bool is_looter_lost_access;
+        bool is_looter_dead;
+        bool is_looter_out_of_range;
+    }
+}

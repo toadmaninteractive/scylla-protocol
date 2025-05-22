@@ -1,0 +1,79 @@
+[* json.enabled string.enabled]
+module ChronosProtocol
+{
+    define DateTime string;
+
+    interface IResult
+    {
+        bool result;
+    }
+
+    record GenericResponse: IResult
+    {
+    }
+
+    exception BadRequestError<T>
+    {
+        T error;
+    }
+
+    exception ForbiddenError
+    {
+    }
+
+    exception NotFoundError
+    {
+    }
+
+    enum LogLevel
+    {
+        trace;
+        debug;
+        info;
+        notice;
+        warning;
+        error;
+        fatal;
+    }
+
+    enum IngestionError
+    {
+        # Invalid application
+        invalid_app;
+
+        # Invalid component
+        invalid_component;
+
+        # Invalid branch
+        invalid_branch;
+
+        # Invalid version
+        invalid_version;
+
+        # No log entries supplied
+        no_logs_to_ingest;
+    }
+
+    record IngestedLogEntry
+    {
+        LogLevel level;
+        DateTime timestamp;
+        json data;
+        string message;
+        int msg_count;
+        int seq_id;
+    }
+
+    [erlang http.client http.base_url="chronos_config:api_url()" http.default_client_headers="chronos_auth:default_headers()"]
+    [elixir http.client http.base_url="Application.get_env(:logger, Logger.Backends.Chronos)[:url]"]
+    webservice ChronosApi
+    {
+        PushLogs => POST /{string app}/{string component}/{string branch}/{string version}
+            ~X-Api-Key: {string api_key}
+            list<IngestedLogEntry>
+        ->
+            201: GenericResponse,
+            400: BadRequestError<IngestionError>,
+            403: ForbiddenError;
+    }
+}

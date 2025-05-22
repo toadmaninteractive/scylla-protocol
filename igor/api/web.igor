@@ -1,0 +1,356 @@
+using TypesProtocol;
+using DataProtocol;
+
+[* json.enabled string.enabled]
+[ts file="web.ts"]
+module WebProtocol
+{
+    # Authentication
+    interface IUserData
+    {
+        string role;
+        string user_id;
+        string username;
+    }
+
+    record LoginRequest
+    {
+        string username;
+        string password;
+    }
+
+    record LoginResponse : IUserData
+    {
+        string session_id;
+    }
+
+    enum LoginError
+    {
+        # Invalid username or password
+        invalid_user_or_password;
+    }
+
+    record UserProfile : IUserData
+    {
+    }
+
+    # ClickHouse instances
+
+    [elixir db.from="app.clickhouse_instance ci"]
+    record ClickhouseInstance
+    {
+        long id;
+        string code;
+        string name;
+        string uri;
+        string username;
+        string password;
+        int rev;
+        DateTime created_at;
+        DateTime updated_at;
+    }
+
+    record CreateClickhouseInstanceRequest
+    {
+        string code;
+        string name;
+        string uri;
+        string username;
+        string password;
+    }
+
+    [* patch_record]
+    record UpdateClickhouseInstanceRequest
+    {
+        string code;
+        string name;
+        string uri;
+        string username;
+        string password;
+    }
+
+    enum ClickhouseInstanceError
+    {
+        //
+        invalid_code;
+        invalid_name;
+        invalid_uri;
+        invalid_username;
+        invalid_password;
+        //
+        code_already_exists;
+        name_already_exists;
+    }
+
+    # Projects
+
+    [elixir db.from="app.project p inner join app.clickhouse_instance ci on ci.id = p.clickhouse_instance_id"]
+    record Project
+    {
+        [elixir db.select="p.id"]
+        long id;
+        [elixir db.select="p.code"]
+        string code;
+        [elixir db.select="p.name"]
+        string name;
+        [elixir db.select="ci.id"]
+        long clickhouse_instance_id;
+        [elixir db.select="ci.code"]
+        string clickhouse_code;
+        [elixir db.select="ci.name"]
+        string clickhouse_name;
+        string clickhouse_db;
+        string key_su;
+        string key_rw;
+        ?string description;
+        // NB: should be "stringy" to preserve formatting
+        ProjectSchema schema = "{}";
+        [elixir db.select="p.rev"]
+        uint rev;
+        bool event_validation;
+        bool preserve_db_columns;
+        bool backup_mode;
+        [elixir db.select="p.created_at"]
+        DateTime created_at;
+        [elixir db.select="p.updated_at"]
+        DateTime updated_at;
+    }
+
+    record CreateProjectRequest
+    {
+        string code;
+        string name;
+        long clickhouse_instance_id;
+        string clickhouse_db;
+        ?string description;
+        bool event_validation = true;
+        bool preserve_db_columns = false;
+        bool backup_mode = false;
+    }
+
+    [* patch_record]
+    record UpdateProjectRequest
+    {
+        string code;
+        string name;
+        long clickhouse_instance_id;
+        string clickhouse_db;
+        string description;
+        bool event_validation;
+        bool preserve_db_columns;
+        bool backup_mode;
+    }
+
+    enum ProjectError
+    {
+        //
+        invalid_code;
+        invalid_name;
+        invalid_clickhouse_instance_id;
+        invalid_clickhouse_db;
+        invalid_description;
+        //
+        clickhouse_instance_not_exists;
+        //
+        code_already_exists;
+        name_already_exists;
+    }
+
+    [elixir db.from="app.project_schema_migration psm inner join app.project p on p.id = psm.project_id"]
+    record SchemaMigration
+    {
+        [elixir db.select="psm.id"]
+        long id;
+        long project_id;
+        [elixir db.select="p.code"]
+        string project_code;
+        ?ProjectSchema previous_schema;
+        [elixir db.select="psm.schema"]
+        ProjectSchema schema;
+        ?string schema_diff;
+        [elixir db.select="psm.created_at"]
+        DateTime created_at;
+    }
+
+    # Customer related items sort fields
+    enum SchemaMigrationOrderBy
+    {
+        id;
+        created_at;
+    }
+
+    # Backup columns sort fields
+    enum BackupFieldsOrderBy
+    {
+        name;
+        field_name;
+        migration;
+    }
+
+    # Scylla Authentication Service
+    [elixir http.server http.base_url="https://ingest.yourcompany.com/auth"]
+    [elixir http.user="conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
+    [ts http.client file="auth.service.ts" http.base_url="https://ingest.yourcompany.com/auth"]
+    webservice ScyllaAuthService
+    {
+        [elixir http.user="conn.assigns[:current_user]"]
+        [elixir http.conn]
+        Login => POST /login
+            LoginRequest
+        ->
+            200: UserProfile,
+            400: BadRequestError<LoginError>;
+
+        [elixir http.conn]
+        Logout => PUT /logout ->
+            204;
+
+        GetMyProfile => GET /profile ->
+            200: UserProfile;
+    }
+
+    # Scylla Management Service
+    [elixir http.server http.base_url="https://ingest.yourcompany.com/manage"]
+    [elixir http.user="api_key && %{role: ~s'scylla_ext', key: api_key} || conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
+    [ts http.client file="management.service.ts" http.base_url="https://ingest.yourcompany.com/manage"]
+    webservice ScyllaManagementService
+    {
+        // ClickHouse instances
+
+        # Get ClickHouse instances
+        [elixir db.from="clickhouse_instance" db.order="id"]
+        GetClickhouseInstances => GET /clickhouse
+            ~x-api-key: {?string api_key}
+        ->
+            200: Collection<ClickhouseInstance>;
+
+        # Create a ClickHouse instance
+        CreateClickhouseInstance => POST /clickhouse
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            CreateClickhouseInstanceRequest
+        ->
+            201: ClickhouseInstance,
+            400: BadRequestError<ClickhouseInstanceError>;
+
+        # Get a ClickHouse instance
+        [elixir db.from="clickhouse_instance" db.where="coalesce(id = :id, false) or coalesce(code = :code, false)"]
+        GetClickhouseInstance => GET /clickhouse/{ClickhouseInstanceId id_or_code}
+            ~x-api-key: {?string api_key}
+        ->
+            200: ClickhouseInstance;
+
+        # Update a ClickHouse instance
+        UpdateClickhouseInstance => PATCH /clickhouse/{ClickhouseInstanceId id_or_code}
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            UpdateClickhouseInstanceRequest
+        ->
+            200: ClickhouseInstance,
+            400: BadRequestError<ClickhouseInstanceError>;
+
+        # Delete a ClickHouse instance
+        DeleteClickhouseInstance => DELETE /clickhouse/{ClickhouseInstanceId id_or_code}
+            ~x-api-key: {?string api_key}
+        ->
+            204;
+
+        // Projects
+
+        # Get projects
+        [elixir db.from="project" db.order="id"]
+        GetProjects => GET /projects
+            ~x-api-key: {?string api_key}
+        ->
+            200: Collection<Project>;
+
+        # Create a project
+        CreateProject => POST /projects
+            ?keep_db={bool keep_db=true}
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            CreateProjectRequest
+        ->
+            201: Project,
+            400: BadRequestError<ProjectError>;
+
+        # Get a project
+        [elixir db.from="project" db.where="coalesce(id = :id, false) or coalesce(code = :code, false)"]
+        GetProject => GET /projects/{ProjectId id_or_code}
+            ~x-api-key: {?string api_key}
+        ->
+            200: Project;
+
+        # Update a project
+        UpdateProject => PATCH /projects/{ProjectId id_or_code}
+            ?keep_db={bool keep_db=true}
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            UpdateProjectRequest
+        ->
+            200: Project,
+            400: BadRequestError<ProjectError>;
+
+        # Delete a project
+        DeleteProject => DELETE /projects/{ProjectId id_or_code}
+            ?keep_db={bool keep_db=true}
+            ~x-api-key: {?string api_key}
+        ->
+            204;
+
+        # Regenerate project key
+        RegenerateProjectKey => PUT /projects/{ProjectId id_or_code}/{atom key}/regenerate
+            ~content-type: "application/json"
+            ~x-api-key: {?string api_key}
+            Empty
+        ->
+            200: Project;
+
+        // Events
+
+        # Fetch last N project events
+        FetchProjectEvents => GET /projects/{ProjectId id_or_code}/events?count={int count=10}
+            ~x-api-key: {?string api_key}
+        ->
+            200: list<json>;
+
+        // Schema Migrations
+
+        # Fetch migrations collection slice
+        [elixir db.from="schema_migration" db.where="(coalesce(project_id = :id, false) or coalesce(project_code = :code, false))"]
+        FetchSchemaMigrations => GET /projects/{ProjectId id_or_code}/migrations
+            ?order_by={SchemaMigrationOrderBy order_by=created_at}
+            &order_dir={OrderDirection order_dir=desc}
+            &offset={uint offset=0}
+            &limit={uint limit=10}
+            ~x-api-key: {?string api_key}
+        ->
+            200: CollectionSlice<SchemaMigration>;
+
+        # Fetch a migration
+        [elixir db.from="schema_migration" db.where="(coalesce(project_id = :id, false) or coalesce(project_code = :code, false)) and id = :migration_id"]
+        FetchSchemaMigration => GET /projects/{ProjectId id_or_code}/migration/{long migration_id}
+            ~x-api-key: {?string api_key}
+        ->
+            200: SchemaMigration;
+
+        // Backup Fields
+
+        # Fetch list of backup fields
+        GetBackupFields => GET /projects/{ProjectId id_or_code}/backup_fields
+            ?order_by={BackupFieldsOrderBy order_by=name}
+            &order_dir={OrderDirection order_dir=asc}
+            &offset={uint offset=0}
+            &limit={uint limit=10}
+            ~x-api-key: {?string api_key}
+        ->
+            200: CollectionSlice<string>;
+
+        # Drop backup fields by name
+        DropBackupFields => PUT /projects/{ProjectId id_or_code}/backup_fields/drop
+            ~x-api-key: {?string api_key}
+            list<string>
+        ->
+            204;
+    }
+}
