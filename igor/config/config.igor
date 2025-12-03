@@ -1,0 +1,59 @@
+[* json.enabled]
+module ConfigProtocol
+{
+    record Config {
+        Web web;
+        Db db;
+        Ldap ldap;
+        dict<atom, CronJob> jobs = [];
+        Clickhouse clickhouse;
+    }
+
+    record Web {
+        string ip = "127.0.0.1"; // 172.17.0.1
+        int port = 39100;
+        WebCors cors;
+        WebSession session;
+        list<string> api_keys = [];
+    }
+    record WebCors {
+        string fallback_origin;
+        list<string> allowed_origins;
+    }
+    record WebSession {
+        string secret;
+        string encryption_salt;
+        string signing_salt;
+    }
+
+    record Db {
+        string url;
+    }
+
+    record Ldap {
+        string server;
+        int port = 389;
+        bool ssl = false;
+        string user_dn;
+        string password;
+        LdapBase base;
+    }
+    record LdapBase {
+        string users;
+        string groups;
+    }
+
+    record CronJob {
+        string schedule;
+        bool extended = false;
+        ?atom module;
+        ?atom function;
+        list<json> arguments = [];
+    }
+
+    record Clickhouse {
+        string table;
+        string save_events_directory;
+        list<uint> transient_error_codes;
+    }
+}
