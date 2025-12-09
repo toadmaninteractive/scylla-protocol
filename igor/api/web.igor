@@ -190,7 +190,7 @@ module WebProtocol
     # Scylla Authentication Service
     [elixir http.server]
     [elixir http.user="conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
-    [ts http.client file="auth.service.ts"]
+    [ts http.client file="auth.service.ts" http.base_url="/auth"]
     webservice ScyllaAuthService
     {
         [elixir http.user="conn.assigns[:current_user]"]
@@ -210,9 +210,9 @@ module WebProtocol
     }
 
     # Scylla Management Service
-    [elixir http.server http.base_url="https://ingest.yourcompany.com/manage"]
+    [elixir http.server]
     [elixir http.user="api_key && %{role: ~s'scylla_ext', key: api_key} || conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
-    [ts http.client file="management.service.ts" http.base_url="https://ingest.yourcompany.com/manage"]
+    [ts http.client file="management.service.ts" http.base_url="/manage"]
     webservice ScyllaManagementService
     {
         // ClickHouse instances

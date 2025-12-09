@@ -47,7 +47,7 @@ module IngestProtocol
     [elixir http.server]
     [elixir http.user="api_key && %{role: ~s'scylla_ext', key: api_key} || conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
     [elixir http.if="ACL.can!(current_user, resource__, Scylla.get_project!(project_id_or_code))"]
-    [ts http.client file="ingest.service.ts"]
+    [ts http.client file="ingest.service.ts" http.base_url="/ingest"]
     webservice ScyllaIngestionService
     {
         # Push events to project database
