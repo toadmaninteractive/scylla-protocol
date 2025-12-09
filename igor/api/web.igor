@@ -188,9 +188,9 @@ module WebProtocol
     }
 
     # Scylla Authentication Service
-    [elixir http.server http.base_url="https://ingest.yourcompany.com/auth"]
+    [elixir http.server]
     [elixir http.user="conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
-    [ts http.client file="auth.service.ts" http.base_url="https://ingest.yourcompany.com/auth"]
+    [ts http.client file="auth.service.ts"]
     webservice ScyllaAuthService
     {
         [elixir http.user="conn.assigns[:current_user]"]
