@@ -84,6 +84,13 @@ module WebProtocol
 
     # Projects
 
+    enum ProjectEventValidation
+    {
+        strict;
+        none;
+        warn;
+    }
+
     [elixir db.from="app.project p inner join app.clickhouse_instance ci on ci.id = p.clickhouse_instance_id"]
     record Project
     {
@@ -107,7 +114,7 @@ module WebProtocol
         ProjectSchema schema = "{}";
         [elixir db.select="p.rev"]
         uint rev;
-        bool event_validation;
+        ProjectEventValidation event_validation;
         bool preserve_db_columns;
         bool backup_mode;
         [elixir db.select="p.created_at"]
@@ -123,7 +130,7 @@ module WebProtocol
         long clickhouse_instance_id;
         string clickhouse_db;
         ?string description;
-        bool event_validation = true;
+        ProjectEventValidation event_validation = strict;
         bool preserve_db_columns = false;
         bool backup_mode = false;
     }
@@ -136,7 +143,7 @@ module WebProtocol
         long clickhouse_instance_id;
         string clickhouse_db;
         string description;
-        bool event_validation;
+        ProjectEventValidation event_validation;
         bool preserve_db_columns;
         bool backup_mode;
     }
