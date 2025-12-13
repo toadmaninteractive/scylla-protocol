@@ -19,6 +19,7 @@ module IngestProtocol
     }
 
     enum IngestError {
+        invalid_data;
         invalid_schema;
         invalid_event;
         invalid_event_tag;
@@ -26,6 +27,7 @@ module IngestProtocol
     }
 
     enum SchemaError {
+        invalid_data;
         clashing_type;
         unknown_type;
         invalid_name;

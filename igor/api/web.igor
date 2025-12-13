@@ -26,6 +26,7 @@ module WebProtocol
 
     enum LoginError
     {
+        invalid_data;
         # Invalid username or password
         invalid_user_or_password;
     }
@@ -71,6 +72,7 @@ module WebProtocol
 
     enum ClickhouseInstanceError
     {
+        invalid_data;
         //
         invalid_code;
         invalid_name;
@@ -150,6 +152,7 @@ module WebProtocol
 
     enum ProjectError
     {
+        invalid_data;
         //
         invalid_code;
         invalid_name;
