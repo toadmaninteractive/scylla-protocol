@@ -39,16 +39,15 @@ module DataProtocol
     }
 
     # HTTP errors
-    interface HttpError
+    interface IHttpError
     {
-        // string error;
         string message;
-        // ?json details;
+        ?json details;
         ?string log_id;
     }
 
     [elixir http.exception_status_code=400]
-    exception BadRequestError<TError> : HttpError
+    exception BadRequestError<TError> : IHttpError
     {
         string message = "Could not process the request due to client error";
         ?TError error;
@@ -56,30 +55,39 @@ module DataProtocol
     }
 
     [elixir http.exception_status_code=401]
-    exception UnauthorizedError : HttpError {
+    exception UnauthorizedError : IHttpError {
         string message = "Access denied. Please provide authentication data";
+        ?string error;
     }
 
     [elixir http.exception_status_code=403]
-    exception ForbiddenError : HttpError {
+    exception ForbiddenError : IHttpError {
         string message = "Access denied. You are not authorized to perform this action";
+        ?string error;
     }
 
     [elixir http.exception_status_code=404]
-    exception NotFoundError : HttpError {
+    exception NotFoundError : IHttpError {
         string message = "Requested resource not found";
     }
 
     [elixir http.exception_status_code=409]
-    exception ConflictError<TError> : HttpError
-    {
+    exception ConflictError<TError> : IHttpError {
         string message = "Could not complete due to a conflict with the current state of the resource";
         ?TError error;
         ?json details;
     }
 
     [elixir http.exception_status_code=500]
-    exception InternalServerError : HttpError {
+    exception InternalServerError : IHttpError {
         string message = "Could not process the request due to server error. Please contact developers";
+        ?string error;
+    }
+
+
+    [elixir http.exception_status_code=502]
+    exception GatewayError : IHttpError {
+        string message = "Error while exchanging with external system";
+        ?string error;
     }
 }

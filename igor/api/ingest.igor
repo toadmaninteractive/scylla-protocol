@@ -24,31 +24,37 @@ module IngestProtocol
         invalid_event;
         invalid_event_tag;
         unknown_event_tag;
+        //
+        project_not_exists;
     }
 
     enum SchemaError {
         invalid_data;
+        invalid_schema;
         clashing_type;
         unknown_type;
         invalid_name;
         invalid_type_definition;
         update_failed;
+        //
+        project_not_exists;
     }
 
     enum SchemaConflictError {
+        same_schema;
         dangerous_action;
     }
 
-    record _OldSchemaResponse
-    {
-        dict<string, string> schema;
-        list<string> order;
-        string order_by;
-    }
+    #record _OldSchemaResponse
+    #{
+    #    dict<string, string> schema;
+    #    list<string> order;
+    #    string order_by;
+    #}
 
     [elixir http.server]
     [elixir http.user="api_key && %{role: ~s'scylla_ext', key: api_key} || conn.assigns[:current_user] || raise DataProtocol.UnauthorizedError"]
-    [elixir http.if="ACL.can!(current_user, resource__, Scylla.get_project!(project_id_or_code))"]
+    [elixir http.if="ACL.can!(current_user, resource__, Queries.get_project!(project_id_or_code, one: true))"]
     [ts http.client file="ingest.service.ts" http.base_url="/ingest"]
     webservice ScyllaIngestionService
     {
@@ -60,14 +66,15 @@ module IngestProtocol
             Envelope
         ->
             201: IngestorResponse,
-            400: BadRequestError<IngestError>;
+            400: BadRequestError<IngestError>,
+            502: GatewayError;
 
-        // NB: internal
-        # Get project schema
-        GetSchema => GET /{ProjectId project_id_or_code}/schema
-            ~x-api-key: {?string api_key}
-        ->
-            200: _OldSchemaResponse;
+        #// NB: internal
+        ## Get project schema
+        #GetSchema => GET /{ProjectId project_id_or_code}/schema
+        #    ~x-api-key: {?string api_key}
+        #->
+        #    200: _OldSchemaResponse;
 
         # Update project schema
         [elixir http.json_decode_options="objects: :ordered_objects"] // NB: to preserve dict key order
@@ -79,6 +86,7 @@ module IngestProtocol
         ->
             204,
             400: BadRequestError<SchemaError>,
-            409: ConflictError<SchemaConflictError>;
+            409: ConflictError<SchemaConflictError>,
+            502: GatewayError;
     }
 }

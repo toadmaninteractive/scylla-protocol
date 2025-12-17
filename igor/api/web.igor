@@ -6,6 +6,7 @@ using DataProtocol;
 module WebProtocol
 {
     # Authentication
+
     interface IUserData
     {
         string role;
@@ -113,6 +114,7 @@ module WebProtocol
         string key_rw;
         ?string description;
         // NB: should be "stringy" to preserve formatting
+        [elixir db.select="app.project_schema(p)"]
         ProjectSchema schema = "{}";
         [elixir db.select="p.rev"]
         uint rev;
@@ -159,6 +161,7 @@ module WebProtocol
         invalid_clickhouse_instance_id;
         invalid_clickhouse_db;
         invalid_description;
+        invalid_event_validation;
         //
         clickhouse_instance_not_exists;
         //
@@ -174,6 +177,7 @@ module WebProtocol
         long project_id;
         [elixir db.select="p.code"]
         string project_code;
+        [elixir db.select="app.project_schema_migration_previous_schema(psm)"]
         ?ProjectSchema previous_schema;
         [elixir db.select="psm.schema"]
         ProjectSchema schema;
@@ -189,8 +193,23 @@ module WebProtocol
         created_at;
     }
 
+    [elixir db.from="app.project_backup_fields pbf inner join app.project p on p.id = pbf.project_id"]
+    record BackupField
+    {
+        [elixir db.select="p.id"]
+        long project_id;
+        [elixir db.select="p.code"]
+        string project_code;
+        [elixir db.select="pbf.name"]
+        string name;
+        [elixir db.select="pbf.field_name"]
+        string field_name;
+        [elixir db.select="pbf.migration"]
+        string migration;
+    }
+
     # Backup columns sort fields
-    enum BackupFieldsOrderBy
+    enum BackupFieldOrderBy
     {
         name;
         field_name;
@@ -241,7 +260,8 @@ module WebProtocol
             CreateClickhouseInstanceRequest
         ->
             201: ClickhouseInstance,
-            400: BadRequestError<ClickhouseInstanceError>;
+            400: BadRequestError<ClickhouseInstanceError>,
+            502: GatewayError;
 
         # Get a ClickHouse instance
         [elixir db.from="clickhouse_instance" db.where="coalesce(id = :id, false) or coalesce(code = :code, false)"]
@@ -282,7 +302,8 @@ module WebProtocol
             CreateProjectRequest
         ->
             201: Project,
-            400: BadRequestError<ProjectError>;
+            400: BadRequestError<ProjectError>,
+            502: GatewayError;
 
         # Get a project
         [elixir db.from="project" db.where="coalesce(id = :id, false) or coalesce(code = :code, false)"]
@@ -299,14 +320,16 @@ module WebProtocol
             UpdateProjectRequest
         ->
             200: Project,
-            400: BadRequestError<ProjectError>;
+            400: BadRequestError<ProjectError>,
+            502: GatewayError;
 
         # Delete a project
         DeleteProject => DELETE /projects/{ProjectId id_or_code}
             ?keep_db={bool keep_db=true}
             ~x-api-key: {?string api_key}
         ->
-            204;
+            204,
+            502: GatewayError;
 
         # Regenerate project key
         RegenerateProjectKey => PUT /projects/{ProjectId id_or_code}/{atom key}/regenerate
@@ -319,10 +342,12 @@ module WebProtocol
         // Events
 
         # Fetch last N project events
-        FetchProjectEvents => GET /projects/{ProjectId id_or_code}/events?count={int count=10}
+        FetchProjectEvents => GET /projects/{ProjectId id_or_code}/events
+            ?count={int count=10}
             ~x-api-key: {?string api_key}
         ->
-            200: list<json>;
+            200: list<json>,
+            502: GatewayError;
 
         // Schema Migrations
 
@@ -347,20 +372,24 @@ module WebProtocol
         // Backup Fields
 
         # Fetch list of backup fields
+        [elixir db.from="backup_field" db.where="(coalesce(project_id = :id, false) or coalesce(project_code = :code, false))"]
         GetBackupFields => GET /projects/{ProjectId id_or_code}/backup_fields
-            ?order_by={BackupFieldsOrderBy order_by=name}
+            ?order_by={BackupFieldOrderBy order_by=name}
             &order_dir={OrderDirection order_dir=asc}
             &offset={uint offset=0}
             &limit={uint limit=10}
             ~x-api-key: {?string api_key}
         ->
-            200: CollectionSlice<string>;
+            200: CollectionSlice<BackupField>,
+            502: GatewayError;
 
         # Drop backup fields by name
         DropBackupFields => PUT /projects/{ProjectId id_or_code}/backup_fields/drop
+            ~content-type: "application/json"
             ~x-api-key: {?string api_key}
             list<string>
         ->
-            204;
+            204,
+            502: GatewayError;
     }
 }
